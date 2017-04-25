@@ -17,7 +17,7 @@ type EpisodeService struct {
 func (s *EpisodeService) ListEpisodes(season mmm.SeasonID) ([]mmm.Episode, error) {
 	// retrieve episodes.
 	var v []mmm.Episode
-	if err := s.client.db.Find("season", season, &v); err != nil {
+	if err := s.client.db.Find("Season", season, &v); err != nil {
 		s.client.logger.Log("err", ErrDatabaseQuery, "msg", err.Error())
 		return nil, ErrDatabaseQuery
 	}
@@ -27,7 +27,7 @@ func (s *EpisodeService) ListEpisodes(season mmm.SeasonID) ([]mmm.Episode, error
 // CreateEpisode persists an episode to the database.
 func (s *EpisodeService) CreateEpisode(v *mmm.Episode) (*mmm.Episode, error) {
 	// require object and id.
-	if v == nil || v.Title == "" || v.Series == mmm.SeriesID(0) || v.Season == mmm.SeasonID(0) || v.Index == 0 {
+	if v == nil || v.Title == "" || v.Season == mmm.SeasonID(0) || v.Index == 0 {
 		return nil, mmm.ErrEpisodeRequired
 	}
 
@@ -35,7 +35,7 @@ func (s *EpisodeService) CreateEpisode(v *mmm.Episode) (*mmm.Episode, error) {
 	v.ModTime = s.client.Now()
 
 	// save record.
-	if err := s.client.db.Save(&v); err != nil {
+	if err := s.client.db.Save(v); err != nil {
 		s.client.logger.Log("err", ErrDatabaseInsert, "msg", err.Error())
 		return nil, ErrDatabaseInsert
 	}
@@ -46,7 +46,7 @@ func (s *EpisodeService) CreateEpisode(v *mmm.Episode) (*mmm.Episode, error) {
 func (s *EpisodeService) Episode(id mmm.EpisodeID) (*mmm.Episode, error) {
 	// retrieve episode.
 	var v mmm.Episode
-	if err := s.client.db.One("id", id, &v); err != nil {
+	if err := s.client.db.One("ID", id, &v); err != nil {
 		s.client.logger.Log("err", ErrDatabaseQuery, "msg", err.Error())
 		return nil, ErrDatabaseQuery
 	}
@@ -54,22 +54,22 @@ func (s *EpisodeService) Episode(id mmm.EpisodeID) (*mmm.Episode, error) {
 }
 
 // UpdateEpisode updates an episode from the db.
-func (s *EpisodeService) UpdateEpisode(id mmm.EpisodeID, new *mmm.Episode) (*mmm.Episode, error) {
+func (s *EpisodeService) UpdateEpisode(new *mmm.Episode) (*mmm.Episode, error) {
 	// retrieve episode.
 	var old mmm.Episode
-	if err := s.client.db.One("id", id, &old); err != nil {
+	if err := s.client.db.One("ID", new.ID, &old); err != nil {
 		s.client.logger.Log("err", ErrDatabaseQuery, "msg", err.Error())
 		return nil, ErrDatabaseQuery
 	}
 
 	// merge episode with old one.
-	if err := mergo.Merge(&new, old); err != nil {
+	if err := mergo.Merge(new, old); err != nil {
 		s.client.logger.Log("err", ErrDatabaseMerge, "msg", err.Error())
 		return nil, ErrDatabaseMerge
 	}
 
 	// update episode.
-	if err := s.client.db.Update(&new); err != nil {
+	if err := s.client.db.Update(new); err != nil {
 		s.client.logger.Log("err", ErrDatabaseUpdate, "msg", err.Error())
 		return nil, ErrDatabaseUpdate
 	}
@@ -80,7 +80,7 @@ func (s *EpisodeService) UpdateEpisode(id mmm.EpisodeID, new *mmm.Episode) (*mmm
 func (s *EpisodeService) DeleteEpisode(id mmm.EpisodeID) error {
 	// retrieve episode.
 	var v mmm.Episode
-	if err := s.client.db.One("id", id, &v); err != nil {
+	if err := s.client.db.One("ID", id, &v); err != nil {
 		s.client.logger.Log("err", ErrDatabaseQuery, "msg", err.Error())
 		return ErrDatabaseQuery
 	}

@@ -2,19 +2,15 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"github.com/go-kit/kit/log"
 	"github.com/pmdcosta/mmm/crawler"
 	"github.com/pmdcosta/mmm/database"
+	"github.com/pmdcosta/mmm/download"
 	"os"
 	"os/signal"
-	"path/filepath"
-	"sync"
 	"syscall"
 	"time"
 )
-
-var wg sync.WaitGroup
 
 func main() {
 	// create logger.
@@ -28,63 +24,30 @@ func main() {
 
 	// parse flags.
 	var (
-		cronTimer = flag.Int("time", 60, "Seconds between updater run")
-		dbHost    = flag.String("dbhost", "database.db", "Database file location")
-		dlPath    = flag.String("dlPath", filepath.Join("C:", "Users", "pmdco", "Downloads"), "Download target location")
+		dlRate = flag.Int("rate", 10, "Minutes between updater run")
+		dbHost = flag.String("db", "D:\\temp\\database.db", "Database file location")
+		dlPath = flag.String("path", "C:\\Users\\pmdco\\Downloads", "Download target location")
 	)
 	flag.Parse()
 
-	// open database.
+	// create database client.
 	db := database.NewClient(logger, *dbHost)
-	err := db.Open()
-	if err != nil {
+	if err := db.Open(); err != nil {
 		panic(err.Error())
 	}
 
-	// open crawler.
-	c := crawler.NewClient(logger)
+	// create crawler client.
+	cr := crawler.NewClient(logger)
 
-	// run cron job
-	quit := make(chan bool)
-	wg.Add(1)
-	go func() {
-		ticker := time.NewTicker(time.Duration(*cronTimer) * time.Second)
-		defer wg.Done()
-		for {
-			select {
-			case <-ticker.C:
-				cron(logger, *db, *c, *dlPath)
-			case <-quit:
-				ticker.Stop()
-				return
-			}
-		}
-	}()
+	// create downloader client.
+	dl := download.NewClient(logger, db.SeasonService(), cr.CrawlerService(), *dlPath, time.Duration(*dlRate))
+	if err := dl.Open(); err != nil {
+		panic(err.Error())
+	}
 
 	// wait for user signal.
 	<-sigs
-	quit <- true
+	dl.Close()
+	db.Close()
 	logger.Log("msg", "shutting down")
-	wg.Wait()
-}
-
-func cron(logger log.Logger, db database.Client, c crawler.Client, dlPath string) error {
-	// list active Seasons from DB.
-	seasons, err := db.SeasonService().ListCompleteSeasons(false)
-	if err != nil {
-		return err
-	}
-
-	// get available episodes for each season.
-	for _, s := range seasons {
-		ts, err := c.Search(s)
-		if err != nil {
-			return err
-		}
-		fmt.Printf("%+v", ts)
-		// TODO - check if it has already been downloaded.
-		// TODO - download file.
-		// TODO - set torrent as downloaded.
-	}
-	return nil
 }

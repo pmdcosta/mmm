@@ -1,18 +1,5 @@
 package mmm
 
-// General errors.
-const (
-	ErrInvalidJSON  = Error("invalid json")
-	ErrInternal     = Error("internal error")
-	ErrEncoding     = Error("failed to encode struct")
-	ErrDecoding     = Error("failed to decode struct")
-)
-
-// Series errors.
-const (
-	ErrSeriesRequired = Error("series required")
-)
-
 // Season errors.
 const (
 	ErrSeasonRequired = Error("season required")

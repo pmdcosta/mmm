@@ -14,21 +14,21 @@ type SeasonService struct {
 }
 
 // ListSeasons returns a list of seasons.
-func (s *SeasonService) ListSeasons(series mmm.SeriesID) ([]mmm.Season, error) {
+func (s *SeasonService) ListSeasons() ([]mmm.Season, error) {
 	// retrieve seasons.
 	var v []mmm.Season
-	if err := s.client.db.Find("series", series, &v); err != nil {
+	if err := s.client.db.All(&v); err != nil {
 		s.client.logger.Log("err", ErrDatabaseQuery, "msg", err.Error())
 		return nil, ErrDatabaseQuery
 	}
 	return v, nil
 }
 
-// ListCompleteSeasons returns a list of complete/incomplete seasons.
-func (s *SeasonService) ListCompleteSeasons(b bool) ([]mmm.Season, error) {
+// ListStateSeasons returns a list of complete/incomplete seasons.
+func (s *SeasonService) ListStateSeasons(state mmm.SeasonState) ([]mmm.Season, error) {
 	// retrieve seasons.
 	var v []mmm.Season
-	if err := s.client.db.Find("complete", b, &v); err != nil {
+	if err := s.client.db.Find("State", state, &v); err != nil {
 		s.client.logger.Log("err", ErrDatabaseQuery, "msg", err.Error())
 		return nil, ErrDatabaseQuery
 	}
@@ -38,7 +38,7 @@ func (s *SeasonService) ListCompleteSeasons(b bool) ([]mmm.Season, error) {
 // CreateSeason persists a season to the database.
 func (s *SeasonService) CreateSeason(v *mmm.Season) (*mmm.Season, error) {
 	// require object and id.
-	if v == nil || v.Title == "" || v.Series == mmm.SeriesID(0) || v.Index == 0 {
+	if v == nil || v.Title == "" || v.Index == 0 || v.Type == mmm.MediaType("") {
 		return nil, mmm.ErrSeasonRequired
 	}
 
@@ -46,7 +46,10 @@ func (s *SeasonService) CreateSeason(v *mmm.Season) (*mmm.Season, error) {
 	v.ModTime = s.client.Now()
 
 	// save record.
-	if err := s.client.db.Save(&v); err != nil {
+	if err := s.client.db.Save(v); err != nil {
+		if err.Error() == ErrDatabaseExists.Error() {
+			return nil, ErrDatabaseExists
+		}
 		s.client.logger.Log("err", ErrDatabaseInsert, "msg", err.Error())
 		return nil, ErrDatabaseInsert
 	}
@@ -57,7 +60,7 @@ func (s *SeasonService) CreateSeason(v *mmm.Season) (*mmm.Season, error) {
 func (s *SeasonService) Season(id mmm.SeasonID) (*mmm.Season, error) {
 	// retrieve season.
 	var v mmm.Season
-	if err := s.client.db.One("id", id, &v); err != nil {
+	if err := s.client.db.One("ID", id, &v); err != nil {
 		s.client.logger.Log("err", ErrDatabaseQuery, "msg", err.Error())
 		return nil, ErrDatabaseQuery
 	}
@@ -65,22 +68,22 @@ func (s *SeasonService) Season(id mmm.SeasonID) (*mmm.Season, error) {
 }
 
 // UpdateSeason updates a season from the db.
-func (s *SeasonService) UpdateSeason(id mmm.SeasonID, new *mmm.Season) (*mmm.Season, error) {
+func (s *SeasonService) UpdateSeason(new *mmm.Season) (*mmm.Season, error) {
 	// retrieve season.
 	var old mmm.Season
-	if err := s.client.db.One("id", id, &old); err != nil {
+	if err := s.client.db.One("ID", new.ID, &old); err != nil {
 		s.client.logger.Log("err", ErrDatabaseQuery, "msg", err.Error())
 		return nil, ErrDatabaseQuery
 	}
 
 	// merge season with old one.
-	if err := mergo.Merge(&new, old); err != nil {
+	if err := mergo.Merge(new, old); err != nil {
 		s.client.logger.Log("err", ErrDatabaseMerge, "msg", err.Error())
 		return nil, ErrDatabaseMerge
 	}
 
 	// update season.
-	if err := s.client.db.Update(&new); err != nil {
+	if err := s.client.db.Update(new); err != nil {
 		s.client.logger.Log("err", ErrDatabaseUpdate, "msg", err.Error())
 		return nil, ErrDatabaseUpdate
 	}
@@ -91,7 +94,7 @@ func (s *SeasonService) UpdateSeason(id mmm.SeasonID, new *mmm.Season) (*mmm.Sea
 func (s *SeasonService) DeleteSeason(id mmm.SeasonID) error {
 	// retrieve season.
 	var v mmm.Season
-	if err := s.client.db.One("id", id, &v); err != nil {
+	if err := s.client.db.One("ID", id, &v); err != nil {
 		s.client.logger.Log("err", ErrDatabaseQuery, "msg", err.Error())
 		return ErrDatabaseQuery
 	}

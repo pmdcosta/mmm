@@ -10,14 +10,13 @@ import (
 
 // Client represents a client to the underlying BoltDB data store.
 type Client struct {
-	// Filename to the BoltDB database.
+	// filename to the BoltDB database.
 	Path string
 
 	// Returns the current time.
 	Now func() time.Time
 
 	// Services
-	seriesService  SeriesService
 	seasonService  SeasonService
 	episodeService EpisodeService
 
@@ -35,7 +34,6 @@ func NewClient(log log.Logger, path string) *Client {
 		Path:   path,
 		Now:    time.Now,
 	}
-	c.seriesService.client = c
 	c.seasonService.client = c
 	c.episodeService.client = c
 	return c
@@ -60,9 +58,6 @@ func (c *Client) Close() error {
 	}
 	return nil
 }
-
-// SeriesService returns the series service associated with the client.
-func (c *Client) SeriesService() mmm.SeriesService { return &c.seriesService }
 
 // SeasonService returns the season service associated with the client.
 func (c *Client) SeasonService() mmm.SeasonService { return &c.seasonService }

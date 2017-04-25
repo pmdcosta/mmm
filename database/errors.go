@@ -10,4 +10,5 @@ const (
 	ErrDatabaseDelete = mmm.Error("failed to delete data from the database")
 	ErrDatabaseUpdate = mmm.Error("failed to update data from the database")
 	ErrDatabaseMerge  = mmm.Error("failed to merge data from the database")
+	ErrDatabaseExists = mmm.Error("already exists")
 )

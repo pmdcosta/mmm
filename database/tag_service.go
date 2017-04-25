@@ -31,7 +31,7 @@ func (s *TagService) CreateTag(v *mmm.Tag) error {
 	}
 
 	// save record.
-	if err := s.client.db.Save(&v); err != nil {
+	if err := s.client.db.Save(v); err != nil {
 		s.client.logger.Log("err", ErrDatabaseInsert, "msg", err.Error())
 		return ErrDatabaseInsert
 	}

@@ -11,6 +11,9 @@ type Client struct {
 	// Returns the current time.
 	Now func() time.Time
 
+	// services
+	crawlerService CrawlerService
+
 	// logger
 	logger log.Logger
 }
@@ -21,20 +24,10 @@ func NewClient(log log.Logger) *Client {
 		logger: log,
 		Now:    time.Now,
 	}
+	c.crawlerService.client = c
+	c.crawlerService.nyaa.client = c
 	return c
 }
 
-// Search searches for torrents.
-func (c *Client) Search(s mmm.Season) ([]mmm.Torrent, error) {
-	if s.Query == "" {
-		c.logger.Log("err", mmm.ErrSeasonRequired)
-		return nil, mmm.ErrSeasonRequired
-	}
-	switch s.Type {
-	case mmm.AnimeType:
-		return Search(c.logger, s.Query)
-	default:
-		c.logger.Log("err", mmm.ErrTypeNotFound, "msg", s.Type)
-		return nil, mmm.ErrTypeNotFound
-	}
-}
+// CrawlerService returns the created crawler service associated with the client.
+func (c *Client) CrawlerService() mmm.CrawlerService { return &c.crawlerService }
